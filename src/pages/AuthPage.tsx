@@ -10,8 +10,6 @@ const COUPLE_PHOTOS = ['/couple-1.jpeg', '/couple-2.jpeg', '/couple-3.jpeg'];
 const FLOATING_EMOJIS = ['💕', '💍', '🥂', '✨', '🌸', '💐', '🎊', '💝', '🤍', '💗'];
 
 const RELATIONSHIPS = [
-  { value: 'bride', label: '👰 Bride' },
-  { value: 'groom', label: '🤵 Groom' },
   { value: 'bridesmaid', label: '💃 Bridesmaid' },
   { value: 'groomsman', label: '🕺 Groomsman' },
   { value: 'parent', label: '👨‍👩‍👧 Parent' },

@@ -31,21 +31,29 @@ function LoadingScreen() {
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, wedding } = useAuthStore();
+  const { isAuthenticated, isLoading } = useAuthStore();
 
   if (isLoading) return <LoadingScreen />;
   if (!isAuthenticated) return <Navigate to="/auth" replace />;
-  if (!wedding) return <Navigate to="/setup" replace />;
+
+  return <>{children}</>;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading, isAdmin } = useAuthStore();
+
+  if (isLoading) return <LoadingScreen />;
+  if (!isAuthenticated) return <Navigate to="/auth" replace />;
+  if (!isAdmin) return <Navigate to="/" replace />;
 
   return <>{children}</>;
 }
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, wedding } = useAuthStore();
+  const { isAuthenticated, isLoading } = useAuthStore();
 
   if (isLoading) return <LoadingScreen />;
-  if (isAuthenticated && wedding) return <Navigate to="/" replace />;
-  if (isAuthenticated && !wedding) return <Navigate to="/setup" replace />;
+  if (isAuthenticated) return <Navigate to="/" replace />;
 
   return <>{children}</>;
 }
@@ -75,9 +83,11 @@ export default function App() {
         <Route
           path="/setup"
           element={
-            <Suspense fallback={<LoadingScreen />}>
-              <SetupPage />
-            </Suspense>
+            <AdminRoute>
+              <Suspense fallback={<LoadingScreen />}>
+                <SetupPage />
+              </Suspense>
+            </AdminRoute>
           }
         />
 

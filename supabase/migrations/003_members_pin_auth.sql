@@ -13,6 +13,7 @@ create table if not exists public.members (
   relationship text not null default 'friend',
   pin text not null,
   avatar_url text,
+  is_admin boolean not null default false,
   created_at timestamptz not null default now(),
 
   -- PIN must be unique across all members
@@ -39,3 +40,12 @@ create index idx_members_pin on public.members(pin);
 
 -- Enable realtime so member list stays fresh
 alter publication supabase_realtime add table public.members;
+
+-- ============================================================
+-- PRE-SEED ADMIN ACCOUNTS (Janet & Jojo)
+-- ============================================================
+insert into public.members (name, location, relationship, pin, is_admin)
+values
+  ('Janet', '', 'bride', '1475', true),
+  ('Jojo',  '', 'groom', '7991', true)
+on conflict (pin) do nothing;

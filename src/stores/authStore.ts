@@ -12,6 +12,7 @@ interface MemberRow {
   relationship: string;
   pin: string;
   avatar_url: string | null;
+  is_admin: boolean;
   created_at: string;
 }
 
@@ -21,7 +22,7 @@ function memberToUser(m: MemberRow): User {
     email: '',
     name: m.name,
     avatar_url: m.avatar_url,
-    role: 'guest',
+    role: m.is_admin ? 'couple' : 'guest',
     location: m.location,
     relationship: m.relationship,
     pin: m.pin,
@@ -35,6 +36,7 @@ interface AuthState {
   wedding: Wedding | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isAdmin: boolean;
 
   setUser: (user: User | null) => void;
   setWedding: (wedding: Wedding | null) => void;
@@ -50,6 +52,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   wedding: null,
   isLoading: true,
   isAuthenticated: false,
+  isAdmin: false,
 
   setUser: (user) => set({ user, isAuthenticated: !!user }),
   setWedding: (wedding) => set({ wedding }),
@@ -71,6 +74,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       relationship,
       pin,
       avatar_url: null,
+      is_admin: false,
       created_at: new Date().toISOString(),
     };
 
@@ -79,7 +83,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     const user = memberToUser(member);
     localStorage.setItem(CURRENT_KEY, member.id);
-    set({ user, isAuthenticated: true });
+    set({ user, isAuthenticated: true, isAdmin: false });
   },
 
   signInWithPin: async (pin) => {
@@ -91,16 +95,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     if (!member) return false;
 
-    const user = memberToUser(member as MemberRow);
-    localStorage.setItem(CURRENT_KEY, member.id as string);
-    set({ user, isAuthenticated: true });
+    const row = member as MemberRow;
+    const user = memberToUser(row);
+    localStorage.setItem(CURRENT_KEY, row.id);
+    set({ user, isAuthenticated: true, isAdmin: !!row.is_admin });
     return true;
   },
 
   signOut: () => {
     localStorage.removeItem(CURRENT_KEY);
     localStorage.removeItem('wedplanner_offline');
-    set({ user: null, wedding: null, isAuthenticated: false });
+    set({ user: null, wedding: null, isAuthenticated: false, isAdmin: false });
   },
 
   skipAuth: () => {
@@ -128,7 +133,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           .maybeSingle();
 
         if (member) {
-          set({ user: memberToUser(member as MemberRow), isAuthenticated: true });
+          const row = member as MemberRow;
+          set({ user: memberToUser(row), isAuthenticated: true, isAdmin: !!row.is_admin });
         }
       } catch {
         // Offline — skip

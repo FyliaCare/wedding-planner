@@ -14,7 +14,7 @@ const moreItems = [
 ];
 
 export default function MorePage() {
-  const { signOut } = useAuthStore();
+  const { signOut, isAdmin } = useAuthStore();
   const [darkMode, setDarkMode] = useState(
     document.documentElement.classList.contains('dark')
   );
@@ -37,6 +37,17 @@ export default function MorePage() {
 
       {/* Items grid */}
       <div className="grid gap-3 sm:grid-cols-2">
+        {isAdmin && (
+          <Link to="/setup" className="animate-slide-up stagger-1">
+            <div className="card-hover glass rounded-xl p-4 flex items-center gap-4 bg-gradient-to-br from-rose-400/20 to-pink-400/10 ring-2 ring-primary/30">
+              <span className="text-3xl">👑</span>
+              <div className="min-w-0">
+                <p className="font-semibold truncate">Wedding Setup</p>
+                <p className="text-xs text-muted-foreground truncate">Admin — configure your wedding</p>
+              </div>
+            </div>
+          </Link>
+        )}
         {moreItems.map((item, i) => (
           <Link key={item.to} to={item.to} className={`animate-slide-up stagger-${Math.min(i + 1, 5)}`}>
             <div className={`card-hover glass rounded-xl p-4 flex items-center gap-4 bg-gradient-to-br ${item.gradient}`}>
