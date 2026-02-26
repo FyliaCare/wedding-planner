@@ -202,7 +202,11 @@ export interface ChatMessage {
   user_name: string;
   user_avatar: string | null;
   content: string;
-  type: 'message' | 'update' | 'photo';
+  type: 'message' | 'update' | 'photo' | 'emoji';
+  reply_to: string | null;         // id of parent message
+  reactions: Record<string, string[]>;  // emoji → array of user_ids
+  image_url: string | null;
+  is_deleted: boolean;
   created_at: string;
 }
 

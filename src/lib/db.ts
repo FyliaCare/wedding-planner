@@ -72,6 +72,23 @@ export class WeddingPlannerDB extends Dexie {
       activities: 'id, wedding_id, user_id, created_at',
       syncQueue: 'id, table, timestamp',
     });
+
+    // Version 4 — enhanced chat (reply_to index)
+    this.version(4).stores({
+      weddings: 'id, user_id, created_at',
+      tasks: 'id, wedding_id, status, category, due_date, priority',
+      budgetCategories: 'id, wedding_id',
+      budgetItems: 'id, category_id, wedding_id, payment_status',
+      guests: 'id, wedding_id, group, rsvp_status, table_id',
+      vendors: 'id, wedding_id, category',
+      seatingTables: 'id, wedding_id',
+      timelineEvents: 'id, wedding_id, sort_order',
+      moodBoardItems: 'id, wedding_id, category',
+      notes: 'id, wedding_id, author_id, vendor_id',
+      messages: 'id, wedding_id, user_id, created_at, reply_to',
+      activities: 'id, wedding_id, user_id, created_at',
+      syncQueue: 'id, table, timestamp',
+    });
   }
 }
 
