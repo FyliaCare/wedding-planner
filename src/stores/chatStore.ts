@@ -20,8 +20,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
   loadMessages: async (weddingId) => {
     set({ isLoading: true });
     try {
+      // Always load local messages first
+      const local = await db.messages
+        .where('wedding_id')
+        .equals(weddingId)
+        .sortBy('created_at');
+
+      let remote: ChatMessage[] = [];
       if (isSupabaseConfigured) {
-        // Try Supabase first
         const { data, error } = await supabase
           .from('messages')
           .select('*')
@@ -29,19 +35,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
           .order('created_at', { ascending: true })
           .limit(200);
 
-        if (!error && data && data.length > 0) {
-          set({ messages: data as ChatMessage[] });
-          set({ isLoading: false });
-          return;
+        if (!error && data) {
+          remote = data as ChatMessage[];
         }
       }
 
-      // Fall back to local
-      const local = await db.messages
-        .where('wedding_id')
-        .equals(weddingId)
-        .sortBy('created_at');
-      set({ messages: local });
+      // Merge local + remote, deduplicate by ID, sort by time
+      const byId = new Map<string, ChatMessage>();
+      for (const m of local) byId.set(m.id, m);
+      for (const m of remote) byId.set(m.id, m); // remote wins on conflicts
+      const merged = Array.from(byId.values()).sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+      set({ messages: merged });
     } catch {
       const local = await db.messages
         .where('wedding_id')
