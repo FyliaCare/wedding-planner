@@ -3,7 +3,7 @@
 // ============================================================
 import 'fake-indexeddb/auto';
 import '@testing-library/jest-dom/vitest';
-import { vi, beforeEach, afterEach } from 'vitest';
+import { vi, beforeEach } from 'vitest';
 
 // ---- Mock crypto.randomUUID ----
 if (!globalThis.crypto?.randomUUID) {

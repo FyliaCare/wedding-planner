@@ -1,7 +1,7 @@
 // ============================================================
 // Notification Store — Panel, Read, Subscribe Tests
 // ============================================================
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { useNotificationStore } from '@/stores/notificationStore';
 import type { AppNotification } from '@/stores/notificationStore';
 

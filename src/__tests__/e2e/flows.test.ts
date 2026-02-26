@@ -10,7 +10,7 @@ import { useVendorStore } from '@/stores/vendorStore';
 import { useTimelineStore } from '@/stores/timelineStore';
 import { useChatStore } from '@/stores/chatStore';
 import { useNotificationStore } from '@/stores/notificationStore';
-import type { Task, Guest, Vendor, TimelineEvent, BudgetCategory, BudgetItem } from '@/types';
+import type { Task, Guest, Vendor, TimelineEvent } from '@/types';
 
 // ---- Mocks ----
 vi.mock('@/lib/db', () => ({
