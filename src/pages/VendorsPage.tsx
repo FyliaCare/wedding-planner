@@ -80,12 +80,16 @@ export default function VendorsPage() {
       deposit_paid: Number(depositPaid) || 0,
       rating, notes,
     };
-    if (editing) {
-      await updateVendor(editing.id, data);
-    } else {
-      await addVendor(data);
+    try {
+      if (editing) {
+        await updateVendor(editing.id, data);
+      } else {
+        await addVendor(data);
+      }
+      setDialogOpen(false);
+    } catch (err) {
+      console.error('Failed to save vendor:', err);
     }
-    setDialogOpen(false);
   };
 
   return (

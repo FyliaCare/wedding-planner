@@ -3,6 +3,7 @@ import type { User, Wedding } from '@/types';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { db } from '@/lib/db';
 import { generateId } from '@/utils';
+import { pullFromRemote } from '@/lib/sync';
 
 const CURRENT_KEY = 'wedplanner_current_user';
 const DARK_MODE_KEY = 'wedplanner_dark_mode';
@@ -29,6 +30,33 @@ function memberToUser(m: MemberRow): User {
     relationship: m.relationship,
     created_at: m.created_at,
   };
+}
+
+/** Fetch wedding from Supabase first, then fall back to IndexedDB. */
+async function fetchWedding(): Promise<Wedding | null> {
+  try {
+    if (isSupabaseConfigured) {
+      const { data } = await supabase
+        .from('weddings')
+        .select('*')
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        const wedding = data as Wedding;
+        await db.weddings.put(wedding).catch(() => {});
+        return wedding;
+      }
+    }
+  } catch (e) {
+    console.warn('Could not load wedding from Supabase:', e);
+  }
+  try {
+    const local = await db.weddings.toArray();
+    if (local.length > 0) return local[0] ?? null;
+  } catch (e) {
+    console.warn('Could not load wedding from IndexedDB:', e);
+  }
+  return null;
 }
 
 // ---- Store ----
@@ -92,7 +120,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     const user = memberToUser(member);
     localStorage.setItem(CURRENT_KEY, member.id);
-    set({ user, isAuthenticated: true, isAdmin: false });
+
+    // Load wedding data so pages have it immediately after auth
+    const wedding = await fetchWedding();
+    set({ user, wedding, isAuthenticated: true, isAdmin: false });
+
+    // Sync all remote data to IndexedDB in background
+    if (wedding?.id) void pullFromRemote(wedding.id);
   },
 
   signInWithPin: async (pin) => {
@@ -117,7 +151,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const row = member as MemberRow;
     const user = memberToUser(row);
     localStorage.setItem(CURRENT_KEY, row.id);
-    set({ user, isAuthenticated: true, isAdmin: !!row.is_admin });
+
+    // Load wedding data so pages have it immediately after auth
+    const wedding = await fetchWedding();
+    set({ user, wedding, isAuthenticated: true, isAdmin: !!row.is_admin });
+
+    // Sync all remote data to IndexedDB in background
+    if (wedding?.id) void pullFromRemote(wedding.id);
     return true;
   },
 
@@ -177,33 +217,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     // Restore wedding data — try Supabase first, fall back to IndexedDB
     if (get().isAuthenticated && !get().wedding) {
-      try {
-        if (isSupabaseConfigured) {
-          const { data: weddings } = await supabase
-            .from('weddings')
-            .select('*')
-            .limit(1)
-            .maybeSingle();
-          if (weddings) {
-            set({ wedding: weddings as Wedding });
-            // Cache in IndexedDB for offline use
-            await db.weddings.put(weddings as Wedding).catch(() => {});
-          }
-        }
-      } catch (e) {
-        console.warn('Could not restore wedding from Supabase:', e);
-      }
-
-      // Fallback to IndexedDB if Supabase didn't return a wedding
-      if (!get().wedding) {
-        try {
-          const localWeddings = await db.weddings.toArray();
-          if (localWeddings.length > 0) {
-            set({ wedding: localWeddings[0] });
-          }
-        } catch (e) {
-          console.warn('Could not restore wedding from IndexedDB:', e);
-        }
+      const wedding = await fetchWedding();
+      if (wedding) {
+        set({ wedding });
+        // Sync all remote data to IndexedDB in background
+        void pullFromRemote(wedding.id);
       }
     }
 

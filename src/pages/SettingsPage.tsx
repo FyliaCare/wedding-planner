@@ -13,8 +13,10 @@ export default function SettingsPage() {
   );
 
   const toggleDarkMode = () => {
+    const next = !darkMode;
     document.documentElement.classList.toggle('dark');
-    setDarkMode(!darkMode);
+    localStorage.setItem('wedplanner_dark_mode', String(next));
+    setDarkMode(next);
   };
 
   const handleClearData = async () => {

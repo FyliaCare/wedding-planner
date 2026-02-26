@@ -91,12 +91,16 @@ export default function GuestsPage() {
       rsvp_status: rsvpStatus, notes,
       table_id: null, seat_number: null,
     };
-    if (editingGuest) {
-      await updateGuest(editingGuest.id, data);
-    } else {
-      await addGuest(data);
+    try {
+      if (editingGuest) {
+        await updateGuest(editingGuest.id, data);
+      } else {
+        await addGuest(data);
+      }
+      setDialogOpen(false);
+    } catch (err) {
+      console.error('Failed to save guest:', err);
     }
-    setDialogOpen(false);
   };
 
   const exportCSV = () => {

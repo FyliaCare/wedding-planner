@@ -57,12 +57,16 @@ export default function TimelinePage() {
       location, responsible_person: responsible, notes,
       sort_order: editing?.sort_order ?? events.length,
     };
-    if (editing) {
-      await updateEvent(editing.id, data);
-    } else {
-      await addEvent(data);
+    try {
+      if (editing) {
+        await updateEvent(editing.id, data);
+      } else {
+        await addEvent(data);
+      }
+      setDialogOpen(false);
+    } catch (err) {
+      console.error('Failed to save timeline event:', err);
     }
-    setDialogOpen(false);
   };
 
   return (

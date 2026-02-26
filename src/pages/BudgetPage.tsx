@@ -80,20 +80,24 @@ export default function BudgetPage() {
 
   const handleSaveCategory = async () => {
     if (!catName.trim() || !wedding?.id) return;
-    if (editingCat) {
-      await updateCategory(editingCat.id, {
-        name: catName,
-        allocated_amount: Number(catAmount) || 0,
-      });
-    } else {
-      await addCategory({
-        wedding_id: wedding.id,
-        name: catName,
-        allocated_amount: Number(catAmount) || 0,
-        icon: '💰',
-      });
+    try {
+      if (editingCat) {
+        await updateCategory(editingCat.id, {
+          name: catName,
+          allocated_amount: Number(catAmount) || 0,
+        });
+      } else {
+        await addCategory({
+          wedding_id: wedding.id,
+          name: catName,
+          allocated_amount: Number(catAmount) || 0,
+          icon: '💰',
+        });
+      }
+      setCatDialogOpen(false);
+    } catch (err) {
+      console.error('Failed to save category:', err);
     }
-    setCatDialogOpen(false);
   };
 
   const openCreateItem = (categoryId: string) => {
@@ -120,27 +124,31 @@ export default function BudgetPage() {
 
   const handleSaveItem = async () => {
     if (!itemName.trim() || !wedding?.id) return;
-    if (editingItem) {
-      await updateItem(editingItem.id, {
-        name: itemName,
-        estimated_cost: Number(itemEstimated) || 0,
-        actual_cost: Number(itemActual) || 0,
-        payment_status: itemPaymentStatus,
-        notes: itemNotes,
-      });
-    } else {
-      await addItem({
-        wedding_id: wedding.id,
-        category_id: itemCatId,
-        name: itemName,
-        estimated_cost: Number(itemEstimated) || 0,
-        actual_cost: Number(itemActual) || 0,
-        payment_status: itemPaymentStatus,
-        vendor_id: null,
-        notes: itemNotes,
-      });
+    try {
+      if (editingItem) {
+        await updateItem(editingItem.id, {
+          name: itemName,
+          estimated_cost: Number(itemEstimated) || 0,
+          actual_cost: Number(itemActual) || 0,
+          payment_status: itemPaymentStatus,
+          notes: itemNotes,
+        });
+      } else {
+        await addItem({
+          wedding_id: wedding.id,
+          category_id: itemCatId,
+          name: itemName,
+          estimated_cost: Number(itemEstimated) || 0,
+          actual_cost: Number(itemActual) || 0,
+          payment_status: itemPaymentStatus,
+          vendor_id: null,
+          notes: itemNotes,
+        });
+      }
+      setItemDialogOpen(false);
+    } catch (err) {
+      console.error('Failed to save budget item:', err);
     }
-    setItemDialogOpen(false);
   };
 
   const paymentBadge = (status: PaymentStatus) => {

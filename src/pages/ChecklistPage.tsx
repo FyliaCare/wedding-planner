@@ -79,20 +79,24 @@ export default function ChecklistPage() {
 
   const handleSave = async () => {
     if (!title.trim() || !wedding?.id) return;
-    if (editingTask) {
-      await updateTask(editingTask.id, {
-        title, description, category, priority, status,
-        due_date: dueDate || null,
-      });
-    } else {
-      await addTask({
-        wedding_id: wedding.id,
-        title, description, category, priority, status,
-        due_date: dueDate || null,
-        assigned_to: null,
-      });
+    try {
+      if (editingTask) {
+        await updateTask(editingTask.id, {
+          title, description, category, priority, status,
+          due_date: dueDate || null,
+        });
+      } else {
+        await addTask({
+          wedding_id: wedding.id,
+          title, description, category, priority, status,
+          due_date: dueDate || null,
+          assigned_to: null,
+        });
+      }
+      setDialogOpen(false);
+    } catch (err) {
+      console.error('Failed to save task:', err);
     }
-    setDialogOpen(false);
   };
 
   const handleStatusToggle = async (task: Task) => {
