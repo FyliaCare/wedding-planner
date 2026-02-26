@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, User, MapPin, Lock, Users, Sparkles } from 'lucide-react';
+import { Heart, User, MapPin, Lock, Users, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,6 +43,7 @@ export default function AuthPage() {
   const { joinParty, signInWithPin } = useAuthStore();
 
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState<'join' | 'returning'>('join');
   const [currentPhoto, setCurrentPhoto] = useState(0);
 
@@ -63,28 +64,38 @@ export default function AuthPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const handleJoin = () => {
+  const handleJoin = async () => {
     if (!name.trim()) return setError('Please enter your name!');
     if (!location.trim()) return setError('Where are you from?');
     if (!pin.trim() || pin.length < 4) return setError('PIN must be at least 4 digits!');
     if (!relationship) return setError('Pick your relationship to the couple!');
     setError('');
+    setIsLoading(true);
     try {
-      joinParty(name.trim(), location.trim(), relationship, pin.trim());
+      await joinParty(name.trim(), location.trim(), relationship, pin.trim());
       navigate('/');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong!');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleReturn = () => {
+  const handleReturn = async () => {
     if (!returnPin.trim()) return setError('Enter your secret PIN!');
     setError('');
-    const found = signInWithPin(returnPin.trim());
-    if (found) {
-      navigate('/');
-    } else {
-      setError('No account found with that PIN. Try joining instead!');
+    setIsLoading(true);
+    try {
+      const found = await signInWithPin(returnPin.trim());
+      if (found) {
+        navigate('/');
+      } else {
+        setError('No account found with that PIN. Try joining instead!');
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong!');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -269,8 +280,13 @@ export default function AuthPage() {
               <Button
                 className="w-full h-12 rounded-xl text-base font-semibold shadow-lg hover:shadow-xl transition-all bg-gradient-to-r from-primary to-pink-500 hover:from-primary/90 hover:to-pink-500/90"
                 onClick={handleJoin}
+                disabled={isLoading}
               >
-                <Heart className="mr-2 h-5 w-5" />
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                ) : (
+                  <Heart className="mr-2 h-5 w-5" />
+                )}
                 Join the Party 🎊
               </Button>
 
@@ -309,7 +325,9 @@ export default function AuthPage() {
               <Button
                 className="w-full h-12 rounded-xl text-base font-semibold shadow-lg bg-gradient-to-r from-primary to-pink-500"
                 onClick={handleReturn}
+                disabled={isLoading}
               >
+                {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
                 Sign Back In 👋
               </Button>
 

@@ -1,41 +1,26 @@
 import { create } from 'zustand';
 import type { User, Wedding } from '@/types';
+import { supabase } from '@/lib/supabase';
 import { generateId } from '@/utils';
 
-// ---- Helpers: store all members in localStorage ----
-const MEMBERS_KEY = 'wedplanner_members';
 const CURRENT_KEY = 'wedplanner_current_user';
 
-interface StoredMember {
+interface MemberRow {
   id: string;
   name: string;
   location: string;
   relationship: string;
   pin: string;
+  avatar_url: string | null;
   created_at: string;
 }
 
-function getMembers(): StoredMember[] {
-  try { return JSON.parse(localStorage.getItem(MEMBERS_KEY) || '[]'); }
-  catch { return []; }
-}
-
-function saveMember(m: StoredMember) {
-  const members = getMembers().filter((x) => x.id !== m.id);
-  members.push(m);
-  localStorage.setItem(MEMBERS_KEY, JSON.stringify(members));
-}
-
-function findByPin(pin: string): StoredMember | undefined {
-  return getMembers().find((m) => m.pin === pin);
-}
-
-function memberToUser(m: StoredMember): User {
+function memberToUser(m: MemberRow): User {
   return {
     id: m.id,
     email: '',
     name: m.name,
-    avatar_url: null,
+    avatar_url: m.avatar_url,
     role: 'guest',
     location: m.location,
     relationship: m.relationship,
@@ -53,8 +38,8 @@ interface AuthState {
 
   setUser: (user: User | null) => void;
   setWedding: (wedding: Wedding | null) => void;
-  joinParty: (name: string, location: string, relationship: string, pin: string) => void;
-  signInWithPin: (pin: string) => boolean;
+  joinParty: (name: string, location: string, relationship: string, pin: string) => Promise<void>;
+  signInWithPin: (pin: string) => Promise<boolean>;
   signOut: () => void;
   skipAuth: () => void;
   initialize: () => Promise<void>;
@@ -69,30 +54,45 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setUser: (user) => set({ user, isAuthenticated: !!user }),
   setWedding: (wedding) => set({ wedding }),
 
-  joinParty: (name, location, relationship, pin) => {
-    // Check PIN uniqueness
-    const existing = findByPin(pin);
+  joinParty: async (name, location, relationship, pin) => {
+    // Check PIN uniqueness in Supabase
+    const { data: existing } = await supabase
+      .from('members')
+      .select('id')
+      .eq('pin', pin)
+      .maybeSingle();
+
     if (existing) throw new Error('That PIN is already taken — pick a different one!');
 
-    const member: StoredMember = {
+    const member: MemberRow = {
       id: generateId(),
       name,
       location,
       relationship,
       pin,
+      avatar_url: null,
       created_at: new Date().toISOString(),
     };
-    saveMember(member);
+
+    const { error } = await supabase.from('members').insert(member);
+    if (error) throw new Error(error.message);
+
     const user = memberToUser(member);
     localStorage.setItem(CURRENT_KEY, member.id);
     set({ user, isAuthenticated: true });
   },
 
-  signInWithPin: (pin) => {
-    const member = findByPin(pin);
+  signInWithPin: async (pin) => {
+    const { data: member } = await supabase
+      .from('members')
+      .select('*')
+      .eq('pin', pin)
+      .maybeSingle();
+
     if (!member) return false;
-    const user = memberToUser(member);
-    localStorage.setItem(CURRENT_KEY, member.id);
+
+    const user = memberToUser(member as MemberRow);
+    localStorage.setItem(CURRENT_KEY, member.id as string);
     set({ user, isAuthenticated: true });
     return true;
   },
@@ -117,13 +117,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   initialize: async () => {
-    // Restore saved session
+    // Restore saved session from Supabase
     const currentId = localStorage.getItem(CURRENT_KEY);
     if (currentId) {
-      const members = getMembers();
-      const member = members.find((m) => m.id === currentId);
-      if (member) {
-        set({ user: memberToUser(member), isAuthenticated: true });
+      try {
+        const { data: member } = await supabase
+          .from('members')
+          .select('*')
+          .eq('id', currentId)
+          .maybeSingle();
+
+        if (member) {
+          set({ user: memberToUser(member as MemberRow), isAuthenticated: true });
+        }
+      } catch {
+        // Offline — skip
       }
     }
 
