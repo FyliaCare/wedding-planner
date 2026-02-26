@@ -45,6 +45,10 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        'rose-gold': 'hsl(var(--rose-gold))',
+        blush: 'hsl(var(--blush))',
+        champagne: 'hsl(var(--champagne))',
+        sage: 'hsl(var(--sage))',
       },
       borderRadius: {
         lg: 'var(--radius)',
