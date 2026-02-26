@@ -79,7 +79,11 @@ export default function BudgetPage() {
   };
 
   const handleSaveCategory = async () => {
-    if (!catName.trim() || !wedding?.id) return;
+    if (!catName.trim()) return;
+    if (!wedding?.id) {
+      alert('Please set up your wedding first! Go to the Dashboard and click "Set Up Your Wedding".');
+      return;
+    }
     try {
       if (editingCat) {
         await updateCategory(editingCat.id, {
@@ -123,7 +127,11 @@ export default function BudgetPage() {
   };
 
   const handleSaveItem = async () => {
-    if (!itemName.trim() || !wedding?.id) return;
+    if (!itemName.trim()) return;
+    if (!wedding?.id) {
+      alert('Please set up your wedding first! Go to the Dashboard and click "Set Up Your Wedding".');
+      return;
+    }
     try {
       if (editingItem) {
         await updateItem(editingItem.id, {

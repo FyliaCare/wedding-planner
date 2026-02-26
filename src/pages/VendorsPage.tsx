@@ -72,7 +72,11 @@ export default function VendorsPage() {
   };
 
   const handleSave = async () => {
-    if (!name.trim() || !wedding?.id) return;
+    if (!name.trim()) return;
+    if (!wedding?.id) {
+      alert('Please set up your wedding first! Go to the Dashboard and click "Set Up Your Wedding".');
+      return;
+    }
     const data = {
       wedding_id: wedding.id, name, category, email, phone, website,
       contract_url: null,

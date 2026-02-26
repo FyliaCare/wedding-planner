@@ -72,7 +72,7 @@ interface AuthState {
   joinParty: (name: string, location: string, relationship: string, pin: string) => Promise<void>;
   signInWithPin: (pin: string) => Promise<boolean>;
   signOut: () => void;
-  skipAuth: () => void;
+  skipAuth: () => Promise<void>;
   initialize: () => Promise<void>;
 }
 
@@ -167,7 +167,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user: null, wedding: null, isAuthenticated: false, isAdmin: false });
   },
 
-  skipAuth: () => {
+  skipAuth: async () => {
     const offlineUser: User = {
       id: 'offline-user',
       email: '',
@@ -178,6 +178,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     };
     localStorage.setItem('wedplanner_offline', 'true');
     set({ user: offlineUser, isAuthenticated: true, isAdmin: false });
+
+    // Try to load wedding so guest users can still browse content
+    const wedding = await fetchWedding();
+    if (wedding) {
+      set({ wedding });
+    }
   },
 
   initialize: async () => {

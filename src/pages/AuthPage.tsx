@@ -97,8 +97,8 @@ export default function AuthPage() {
     }
   };
 
-  const handleSkip = () => {
-    useAuthStore.getState().skipAuth();
+  const handleSkip = async () => {
+    await useAuthStore.getState().skipAuth();
     navigate('/');
   };
 

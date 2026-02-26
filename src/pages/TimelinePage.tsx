@@ -50,7 +50,11 @@ export default function TimelinePage() {
   };
 
   const handleSave = async () => {
-    if (!title.trim() || !wedding?.id) return;
+    if (!title.trim()) return;
+    if (!wedding?.id) {
+      alert('Please set up your wedding first! Go to the Dashboard and click "Set Up Your Wedding".');
+      return;
+    }
     const data = {
       wedding_id: wedding.id,
       title, start_time: startTime, end_time: endTime,

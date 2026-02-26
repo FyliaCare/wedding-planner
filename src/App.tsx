@@ -39,12 +39,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, isAdmin } = useAuthStore();
+/** Allow access when no wedding exists (any user can do initial setup) OR user is admin */
+function SetupRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading, isAdmin, wedding } = useAuthStore();
 
   if (isLoading) return <LoadingScreen />;
   if (!isAuthenticated) return <Navigate to="/auth" replace />;
-  if (!isAdmin) return <Navigate to="/" replace />;
+  // Allow setup if no wedding exists yet (first-time setup) or user is admin
+  if (wedding && !isAdmin) return <Navigate to="/" replace />;
 
   return <>{children}</>;
 }
@@ -83,11 +85,11 @@ export default function App() {
         <Route
           path="/setup"
           element={
-            <AdminRoute>
+            <SetupRoute>
               <Suspense fallback={<LoadingScreen />}>
                 <SetupPage />
               </Suspense>
-            </AdminRoute>
+            </SetupRoute>
           }
         />
 

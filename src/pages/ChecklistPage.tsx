@@ -78,7 +78,11 @@ export default function ChecklistPage() {
   };
 
   const handleSave = async () => {
-    if (!title.trim() || !wedding?.id) return;
+    if (!title.trim()) return;
+    if (!wedding?.id) {
+      alert('Please set up your wedding first! Go to the Dashboard and click "Set Up Your Wedding".');
+      return;
+    }
     try {
       if (editingTask) {
         await updateTask(editingTask.id, {

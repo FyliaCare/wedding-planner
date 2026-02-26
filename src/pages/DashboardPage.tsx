@@ -21,7 +21,7 @@ const QUICK_LINKS = [
 ];
 
 export default function DashboardPage() {
-  const { wedding, isAdmin } = useAuthStore();
+  const { wedding } = useAuthStore();
   const { tasks, loadTasks } = useTaskStore();
   const { categories, items, loadBudget, getTotalActual } = useBudgetStore();
   const { loadGuests, getStats } = useGuestStore();
@@ -92,18 +92,15 @@ export default function DashboardPage() {
             {/* Call-to-action when no wedding is configured */}
             {!wedding && (
               <div className="mt-3 animate-slide-up stagger-2">
-                {isAdmin ? (
-                  <Link to="/setup">
-                    <Button className="bg-gradient-to-r from-primary to-pink-500 hover:from-primary/90 hover:to-pink-500/90 shadow-md">
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Set Up Your Wedding 💍
-                    </Button>
-                  </Link>
-                ) : (
-                  <p className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-4 py-2 inline-block">
-                    ✨ The couple hasn't set up the wedding yet — they'll get it ready soon!
-                  </p>
-                )}
+                <Link to="/setup">
+                  <Button className="bg-gradient-to-r from-primary to-pink-500 hover:from-primary/90 hover:to-pink-500/90 shadow-md">
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Set Up Your Wedding 💍
+                  </Button>
+                </Link>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Set up the wedding details to unlock all planning features ✨
+                </p>
               </div>
             )}
           </div>
