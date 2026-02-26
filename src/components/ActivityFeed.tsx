@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Activity as ActivityIcon, MessageCircle, CheckCircle2, UserPlus, DollarSign, Image } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { getInitials } from '@/utils';
 import type { Activity } from '@/types';
 
@@ -38,18 +38,26 @@ export function ActivityFeed({ weddingId }: { weddingId: string }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!weddingId) return;
+    if (!weddingId || !isSupabaseConfigured) {
+      setLoading(false);
+      return;
+    }
 
     async function load() {
-      const { data } = await supabase
-        .from('activities')
-        .select('*')
-        .eq('wedding_id', weddingId)
-        .order('created_at', { ascending: false })
-        .limit(10);
+      try {
+        const { data } = await supabase
+          .from('activities')
+          .select('*')
+          .eq('wedding_id', weddingId)
+          .order('created_at', { ascending: false })
+          .limit(10);
 
-      if (data) setActivities(data as Activity[]);
-      setLoading(false);
+        if (data) setActivities(data as Activity[]);
+      } catch {
+        // Supabase unavailable — fail silently
+      } finally {
+        setLoading(false);
+      }
     }
 
     void load();
