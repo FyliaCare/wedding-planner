@@ -1,11 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Navbar } from './Navbar';
 import { BottomNav } from './BottomNav';
+import { useNotificationStore } from '@/stores/notificationStore';
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { loadRecent, subscribe } = useNotificationStore();
+
+  useEffect(() => {
+    void loadRecent();
+    const unsub = subscribe();
+    return unsub;
+  }, [loadRecent, subscribe]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-romantic">

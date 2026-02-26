@@ -2,6 +2,7 @@
 -- Wedding Planner — PIN-based Members (no email auth needed)
 -- ============================================================
 -- Run this AFTER 002_chat_and_activities.sql in Supabase SQL Editor
+-- Safe to re-run — all statements are idempotent.
 
 -- ============================================================
 -- MEMBERS (PIN-based lightweight auth)
@@ -20,26 +21,32 @@ create table if not exists public.members (
   constraint members_pin_unique unique (pin)
 );
 
--- No RLS — this is a lightweight open table for the wedding crew
--- Anyone with the app link can join / sign in with their PIN
+-- Add is_admin column if table existed before this migration
+alter table public.members add column if not exists is_admin boolean not null default false;
+
+-- RLS
 alter table public.members enable row level security;
 
--- Allow anyone (anon) to read members (needed to check PIN on login)
+-- Drop old policies if they exist, then recreate
+drop policy if exists "Anyone can read members" on public.members;
 create policy "Anyone can read members"
   on public.members for select using (true);
 
--- Allow anyone (anon) to insert new members (joining the party)
+drop policy if exists "Anyone can join" on public.members;
 create policy "Anyone can join"
   on public.members for insert with check (true);
 
--- Allow anyone to update their own row (matched by id)
+drop policy if exists "Members can update own profile" on public.members;
 create policy "Members can update own profile"
   on public.members for update using (true);
 
-create index idx_members_pin on public.members(pin);
+create index if not exists idx_members_pin on public.members(pin);
 
--- Enable realtime so member list stays fresh
-alter publication supabase_realtime add table public.members;
+-- Enable realtime (ignore error if already added)
+do $$ begin
+  alter publication supabase_realtime add table public.members;
+exception when duplicate_object then null;
+end $$;
 
 -- ============================================================
 -- PRE-SEED ADMIN ACCOUNTS (Janet & Jojo)
@@ -48,4 +55,4 @@ insert into public.members (name, location, relationship, pin, is_admin)
 values
   ('Janet', '', 'bride', '1475', true),
   ('Jojo',  '', 'groom', '7991', true)
-on conflict (pin) do nothing;
+on conflict (pin) do update set is_admin = true;

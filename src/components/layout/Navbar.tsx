@@ -2,6 +2,8 @@ import { Menu, Bell, Wifi, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthStore } from '@/stores/authStore';
+import { useNotificationStore } from '@/stores/notificationStore';
+import { NotificationPanel } from '@/components/NotificationPanel';
 import { getInitials } from '@/utils';
 import { isOnline } from '@/lib/sync';
 
@@ -11,6 +13,7 @@ interface NavbarProps {
 
 export function Navbar({ onMenuClick }: NavbarProps) {
   const { user } = useAuthStore();
+  const { unreadCount, togglePanel } = useNotificationStore();
   const online = isOnline();
 
   return (
@@ -48,12 +51,22 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         </div>
 
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative h-9 w-9">
-          <Bell className="h-4 w-4" />
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground animate-bounce-gentle">
-            3
-          </span>
-        </Button>
+        <div className="relative" data-notification-bell>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative h-9 w-9"
+            onClick={togglePanel}
+          >
+            <Bell className="h-4 w-4" />
+            {unreadCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground animate-bounce-gentle">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </Button>
+          <NotificationPanel />
+        </div>
 
         {/* User avatar */}
         <div className="flex items-center gap-2 rounded-full bg-muted/50 pl-1 pr-3 py-1">
