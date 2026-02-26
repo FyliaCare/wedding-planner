@@ -15,6 +15,7 @@ const MoodBoardPage = lazy(() => import('@/pages/MoodBoardPage'));
 const NotesPage = lazy(() => import('@/pages/NotesPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const MorePage = lazy(() => import('@/pages/MorePage'));
+const ChatPage = lazy(() => import('@/pages/ChatPage'));
 const AuthPage = lazy(() => import('@/pages/AuthPage'));
 const SetupPage = lazy(() => import('@/pages/SetupPage'));
 
@@ -97,6 +98,7 @@ export default function App() {
           <Route path="seating" element={<SeatingPage />} />
           <Route path="mood-board" element={<MoodBoardPage />} />
           <Route path="notes" element={<NotesPage />} />
+          <Route path="chat" element={<ChatPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="more" element={<MorePage />} />
         </Route>

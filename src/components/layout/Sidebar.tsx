@@ -11,6 +11,7 @@ import {
   StickyNote,
   Settings,
   Heart,
+  MessageCircle,
 } from 'lucide-react';
 import { cn } from '@/utils';
 
@@ -24,6 +25,7 @@ const navItems = [
   { to: '/timeline', label: 'Timeline', icon: Clock },
   { to: '/moodboard', label: 'Mood Board', icon: Image },
   { to: '/notes', label: 'Notes', icon: StickyNote },
+  { to: '/chat', label: 'Chat', icon: MessageCircle },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 
@@ -54,7 +56,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         {/* Logo */}
         <div className="flex h-16 items-center gap-2 border-b px-6">
           <Heart className="h-6 w-6 fill-primary text-primary" />
-          <span className="text-lg font-bold tracking-tight">WedPlanner</span>
+          <span className="text-lg font-bold tracking-tight">Janet & Jojo</span>
         </div>
 
         {/* Navigation */}

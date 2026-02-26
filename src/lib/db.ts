@@ -10,6 +10,8 @@ import type {
   TimelineEvent,
   MoodBoardItem,
   Note,
+  ChatMessage,
+  Activity,
 } from '@/types';
 
 export class WeddingPlannerDB extends Dexie {
@@ -23,10 +25,12 @@ export class WeddingPlannerDB extends Dexie {
   timelineEvents!: Table<TimelineEvent>;
   moodBoardItems!: Table<MoodBoardItem>;
   notes!: Table<Note>;
+  messages!: Table<ChatMessage>;
+  activities!: Table<Activity>;
 
   constructor() {
     super('WeddingPlannerDB');
-    this.version(1).stores({
+    this.version(2).stores({
       weddings: 'id, user_id, created_at',
       tasks: 'id, wedding_id, status, category, due_date, priority',
       budgetCategories: 'id, wedding_id',
@@ -37,6 +41,8 @@ export class WeddingPlannerDB extends Dexie {
       timelineEvents: 'id, wedding_id, sort_order',
       moodBoardItems: 'id, wedding_id, category',
       notes: 'id, wedding_id, author_id, vendor_id',
+      messages: 'id, wedding_id, user_id, created_at',
+      activities: 'id, wedding_id, user_id, created_at',
     });
   }
 }

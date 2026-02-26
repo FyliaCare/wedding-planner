@@ -192,6 +192,30 @@ export interface Note {
   created_at: string;
 }
 
+// ---------- Chat / Messages ----------
+export interface ChatMessage {
+  id: string;
+  wedding_id: string;
+  user_id: string;
+  user_name: string;
+  user_avatar: string | null;
+  content: string;
+  type: 'message' | 'update' | 'photo';
+  created_at: string;
+}
+
+// ---------- Activity Feed ----------
+export interface Activity {
+  id: string;
+  wedding_id: string;
+  user_id: string;
+  user_name: string;
+  action: string;        // e.g. "added a guest", "updated the budget"
+  entity_type: string;   // e.g. "guest", "task", "budget"
+  entity_name: string;   // e.g. "Aunt Mary", "Book photographer"
+  created_at: string;
+}
+
 // ---------- Dashboard Stats ----------
 export interface DashboardStats {
   daysUntilWedding: number;

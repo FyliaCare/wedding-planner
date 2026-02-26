@@ -1,7 +1,10 @@
 import { useEffect, useMemo } from 'react';
-import { Heart, CheckCircle2, DollarSign, Users, Calendar, TrendingUp } from 'lucide-react';
+import { Heart, CheckCircle2, DollarSign, Users, Calendar, TrendingUp, MessageCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { ActivityFeed } from '@/components/ActivityFeed';
 import { useAuthStore } from '@/stores/authStore';
 import { useTaskStore } from '@/stores/taskStore';
 import { useBudgetStore } from '@/stores/budgetStore';
@@ -48,12 +51,12 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl font-bold tracking-tight">
           {wedding
-            ? `${wedding.partner1_name} & ${wedding.partner2_name}`
-            : 'Welcome to WedPlanner'}
+            ? `${wedding.partner1_name} & ${wedding.partner2_name} 💍`
+            : 'Welcome'}
         </h1>
         <p className="text-muted-foreground">
           {wedding
-            ? 'Your wedding planning dashboard'
+            ? 'Wedding planning HQ — let\'s make magic happen!'
             : 'Set up your wedding to get started'}
         </p>
       </div>
@@ -194,6 +197,33 @@ export default function DashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Activity feed + Chat shortcut */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* Activity Feed */}
+        {weddingId && <ActivityFeed weddingId={weddingId} />}
+
+        {/* Quick chat access */}
+        <Card className="border-primary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5" />
+              Wedding Chat
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Chat with your wedding crew — share updates, ideas, and keep everyone in the loop!
+            </p>
+            <Link to="/chat">
+              <Button className="w-full">
+                <MessageCircle className="mr-2 h-4 w-4" />
+                Open Chat
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

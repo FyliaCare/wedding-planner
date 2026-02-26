@@ -3,7 +3,7 @@ import {
   LayoutDashboard,
   CheckSquare,
   DollarSign,
-  Users,
+  MessageCircle,
   MoreHorizontal,
 } from 'lucide-react';
 import { cn } from '@/utils';
@@ -12,7 +12,7 @@ const bottomNavItems = [
   { to: '/', label: 'Home', icon: LayoutDashboard },
   { to: '/checklist', label: 'Tasks', icon: CheckSquare },
   { to: '/budget', label: 'Budget', icon: DollarSign },
-  { to: '/guests', label: 'Guests', icon: Users },
+  { to: '/chat', label: 'Chat', icon: MessageCircle },
   { to: '/more', label: 'More', icon: MoreHorizontal },
 ];
 
