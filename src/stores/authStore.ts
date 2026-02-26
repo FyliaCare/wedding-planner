@@ -1,20 +1,61 @@
 import { create } from 'zustand';
 import type { User, Wedding } from '@/types';
-import { supabase } from '@/lib/supabase';
+import { generateId } from '@/utils';
 
+// ---- Helpers: store all members in localStorage ----
+const MEMBERS_KEY = 'wedplanner_members';
+const CURRENT_KEY = 'wedplanner_current_user';
+
+interface StoredMember {
+  id: string;
+  name: string;
+  location: string;
+  relationship: string;
+  pin: string;
+  created_at: string;
+}
+
+function getMembers(): StoredMember[] {
+  try { return JSON.parse(localStorage.getItem(MEMBERS_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function saveMember(m: StoredMember) {
+  const members = getMembers().filter((x) => x.id !== m.id);
+  members.push(m);
+  localStorage.setItem(MEMBERS_KEY, JSON.stringify(members));
+}
+
+function findByPin(pin: string): StoredMember | undefined {
+  return getMembers().find((m) => m.pin === pin);
+}
+
+function memberToUser(m: StoredMember): User {
+  return {
+    id: m.id,
+    email: '',
+    name: m.name,
+    avatar_url: null,
+    role: 'guest',
+    location: m.location,
+    relationship: m.relationship,
+    pin: m.pin,
+    created_at: m.created_at,
+  };
+}
+
+// ---- Store ----
 interface AuthState {
   user: User | null;
   wedding: Wedding | null;
   isLoading: boolean;
   isAuthenticated: boolean;
 
-  // Actions
   setUser: (user: User | null) => void;
   setWedding: (wedding: Wedding | null) => void;
-  signUp: (email: string, password: string, name: string) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
-  signOut: () => Promise<void>;
+  joinParty: (name: string, location: string, relationship: string, pin: string) => void;
+  signInWithPin: (pin: string) => boolean;
+  signOut: () => void;
   skipAuth: () => void;
   initialize: () => Promise<void>;
 }
@@ -28,68 +69,36 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setUser: (user) => set({ user, isAuthenticated: !!user }),
   setWedding: (wedding) => set({ wedding }),
 
-  signUp: async (email, password, name) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { name } },
-    });
-    if (error) throw error;
-    if (data.user) {
-      set({
-        user: {
-          id: data.user.id,
-          email: data.user.email!,
-          name,
-          avatar_url: null,
-          role: 'couple',
-          created_at: new Date().toISOString(),
-        },
-        isAuthenticated: true,
-      });
-    }
+  joinParty: (name, location, relationship, pin) => {
+    // Check PIN uniqueness
+    const existing = findByPin(pin);
+    if (existing) throw new Error('That PIN is already taken — pick a different one!');
+
+    const member: StoredMember = {
+      id: generateId(),
+      name,
+      location,
+      relationship,
+      pin,
+      created_at: new Date().toISOString(),
+    };
+    saveMember(member);
+    const user = memberToUser(member);
+    localStorage.setItem(CURRENT_KEY, member.id);
+    set({ user, isAuthenticated: true });
   },
 
-  signIn: async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw error;
-    if (data.user) {
-      set({
-        user: {
-          id: data.user.id,
-          email: data.user.email!,
-          name: data.user.user_metadata?.['name'] as string || '',
-          avatar_url: data.user.user_metadata?.['avatar_url'] as string || null,
-          role: 'couple',
-          created_at: data.user.created_at,
-        },
-        isAuthenticated: true,
-      });
-      // Load wedding
-      const { data: weddings } = await supabase
-        .from('weddings')
-        .select('*')
-        .eq('user_id', data.user.id)
-        .limit(1);
-      if (weddings && weddings.length > 0) {
-        set({ wedding: weddings[0] as Wedding });
-      }
-    }
+  signInWithPin: (pin) => {
+    const member = findByPin(pin);
+    if (!member) return false;
+    const user = memberToUser(member);
+    localStorage.setItem(CURRENT_KEY, member.id);
+    set({ user, isAuthenticated: true });
+    return true;
   },
 
-  signInWithGoogle: async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin },
-    });
-    if (error) throw error;
-  },
-
-  signOut: async () => {
-    await supabase.auth.signOut();
+  signOut: () => {
+    localStorage.removeItem(CURRENT_KEY);
     localStorage.removeItem('wedplanner_offline');
     set({ user: null, wedding: null, isAuthenticated: false });
   },
@@ -108,30 +117,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   initialize: async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const user: User = {
-          id: session.user.id,
-          email: session.user.email!,
-          name: session.user.user_metadata?.['name'] as string || '',
-          avatar_url: session.user.user_metadata?.['avatar_url'] as string || null,
-          role: 'couple',
-          created_at: session.user.created_at,
-        };
-        set({ user, isAuthenticated: true });
-
-        const { data: weddings } = await supabase
-          .from('weddings')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .limit(1);
-        if (weddings && weddings.length > 0) {
-          set({ wedding: weddings[0] as Wedding });
-        }
+    // Restore saved session
+    const currentId = localStorage.getItem(CURRENT_KEY);
+    if (currentId) {
+      const members = getMembers();
+      const member = members.find((m) => m.id === currentId);
+      if (member) {
+        set({ user: memberToUser(member), isAuthenticated: true });
       }
-    } catch {
-      // Offline or no session — continue with local-only mode
     }
 
     // Restore offline/guest session
@@ -140,22 +133,5 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     set({ isLoading: false });
-
-    // Listen for auth changes
-    supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        get().setUser({
-          id: session.user.id,
-          email: session.user.email!,
-          name: session.user.user_metadata?.['name'] as string || '',
-          avatar_url: session.user.user_metadata?.['avatar_url'] as string || null,
-          role: 'couple',
-          created_at: session.user.created_at,
-        });
-      } else {
-        get().setUser(null);
-        get().setWedding(null);
-      }
-    });
   },
 }));

@@ -9,6 +9,9 @@ export interface User {
   name: string;
   avatar_url: string | null;
   role: 'couple' | 'planner' | 'guest';
+  location?: string;
+  relationship?: string;
+  pin?: string;
   created_at: string;
 }
 
