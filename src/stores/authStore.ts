@@ -62,13 +62,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!name.trim()) throw new Error('Name is required');
     if (!pin.trim() || pin.length < 4) throw new Error('PIN must be at least 4 digits');
 
+    if (!isSupabaseConfigured) {
+      throw new Error('Backend is not configured. Ask the couple for the correct link!');
+    }
+
     // Check PIN uniqueness in Supabase
-    const { data: existing } = await supabase
+    const { data: existing, error: pinCheckError } = await supabase
       .from('members')
       .select('id')
       .eq('pin', pin)
       .maybeSingle();
 
+    if (pinCheckError) throw new Error(pinCheckError.message);
     if (existing) throw new Error('That PIN is already taken — pick a different one!');
 
     const member: MemberRow = {
@@ -92,6 +97,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   signInWithPin: async (pin) => {
     if (!pin.trim()) return false;
+
+    if (!isSupabaseConfigured) {
+      throw new Error('Backend is not configured. Ask the couple for the correct link!');
+    }
 
     const { data: member, error } = await supabase
       .from('members')
@@ -166,15 +175,35 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       get().skipAuth();
     }
 
-    // Restore wedding data from Dexie (works offline)
+    // Restore wedding data — try Supabase first, fall back to IndexedDB
     if (get().isAuthenticated && !get().wedding) {
       try {
-        const weddings = await db.weddings.toArray();
-        if (weddings.length > 0) {
-          set({ wedding: weddings[0] });
+        if (isSupabaseConfigured) {
+          const { data: weddings } = await supabase
+            .from('weddings')
+            .select('*')
+            .limit(1)
+            .maybeSingle();
+          if (weddings) {
+            set({ wedding: weddings as Wedding });
+            // Cache in IndexedDB for offline use
+            await db.weddings.put(weddings as Wedding).catch(() => {});
+          }
         }
       } catch (e) {
-        console.warn('Could not restore wedding from IndexedDB:', e);
+        console.warn('Could not restore wedding from Supabase:', e);
+      }
+
+      // Fallback to IndexedDB if Supabase didn't return a wedding
+      if (!get().wedding) {
+        try {
+          const localWeddings = await db.weddings.toArray();
+          if (localWeddings.length > 0) {
+            set({ wedding: localWeddings[0] });
+          }
+        } catch (e) {
+          console.warn('Could not restore wedding from IndexedDB:', e);
+        }
       }
     }
 

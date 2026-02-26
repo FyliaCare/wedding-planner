@@ -11,6 +11,32 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Kill-switch: force-unregister stale service workers from previous broken deploys.
+      // This runs BEFORE React so it works even if the React tree is dead.
+      (function() {
+        if ('serviceWorker' in navigator) {
+          var SW_VERSION = 2; // bump this number to force re-registration
+          var key = 'wedplanner_sw_ver';
+          var stored = localStorage.getItem(key);
+          if (!stored || parseInt(stored, 10) < SW_VERSION) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              regs.forEach(function(r) { r.unregister(); });
+            });
+            if ('caches' in window) {
+              caches.keys().then(function(names) {
+                names.forEach(function(n) { caches.delete(n); });
+              });
+            }
+            localStorage.setItem(key, String(SW_VERSION));
+            // Reload once to pick up fresh assets
+            if (stored !== null) {
+              window.location.reload();
+            }
+          }
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
