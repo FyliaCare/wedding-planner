@@ -101,12 +101,13 @@ export default function GuestsPage() {
 
   const exportCSV = () => {
     const headers = ['Name', 'Email', 'Phone', 'Group', 'RSVP', 'Meal', 'Dietary', 'Plus One', 'Plus One Name'];
+    const escapeCSV = (val: string) => `"${String(val).replace(/"/g, '""')}"`;
     const rows = guests.map((g) => [
       g.name, g.email, g.phone, groupLabels[g.group],
       g.rsvp_status, g.meal_preference, g.dietary_restrictions,
       g.plus_one ? 'Yes' : 'No', g.plus_one_name,
     ]);
-    const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
+    const csv = [headers, ...rows].map((r) => r.map(escapeCSV).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -333,7 +334,7 @@ export default function GuestsPage() {
           </div>
           <DialogFooter className="gap-2">
             {editingGuest && (
-              <Button variant="destructive" onClick={async () => { await deleteGuest(editingGuest.id); setDialogOpen(false); }}>
+              <Button variant="destructive" onClick={async () => { if (!window.confirm('Delete this guest?')) return; await deleteGuest(editingGuest.id); setDialogOpen(false); }}>
                 Delete
               </Button>
             )}

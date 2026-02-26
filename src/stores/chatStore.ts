@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { ChatMessage } from '@/types';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { db } from '@/lib/db';
 import { generateId } from '@/utils';
 
@@ -20,24 +20,28 @@ export const useChatStore = create<ChatState>((set, get) => ({
   loadMessages: async (weddingId) => {
     set({ isLoading: true });
     try {
-      // Try Supabase first
-      const { data } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('wedding_id', weddingId)
-        .order('created_at', { ascending: true })
-        .limit(200);
+      if (isSupabaseConfigured) {
+        // Try Supabase first
+        const { data, error } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('wedding_id', weddingId)
+          .order('created_at', { ascending: true })
+          .limit(200);
 
-      if (data && data.length > 0) {
-        set({ messages: data as ChatMessage[] });
-      } else {
-        // Fall back to local
-        const local = await db.messages
-          .where('wedding_id')
-          .equals(weddingId)
-          .sortBy('created_at');
-        set({ messages: local });
+        if (!error && data && data.length > 0) {
+          set({ messages: data as ChatMessage[] });
+          set({ isLoading: false });
+          return;
+        }
       }
+
+      // Fall back to local
+      const local = await db.messages
+        .where('wedding_id')
+        .equals(weddingId)
+        .sortBy('created_at');
+      set({ messages: local });
     } catch {
       const local = await db.messages
         .where('wedding_id')
@@ -50,8 +54,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   sendMessage: async (msg) => {
+    if (!msg.content || !msg.content.trim()) return;
+
     const message: ChatMessage = {
       ...msg,
+      content: msg.content.trim(),
       id: generateId(),
       created_at: new Date().toISOString(),
     };
@@ -62,15 +69,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // Save locally
     try {
       await db.messages.add(message);
-    } catch { /* ok */ }
+    } catch (e) {
+      console.error('Failed to save message locally:', e);
+    }
 
     // Push to Supabase
-    try {
-      await supabase.from('messages').insert(message);
-    } catch { /* offline — will sync later */ }
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.from('messages').insert(message);
+        if (error) console.error('Failed to sync message to Supabase:', error.message);
+      } catch (e) {
+        console.error('Failed to push message to Supabase:', e);
+      }
+    }
   },
 
   subscribeToMessages: (weddingId) => {
+    if (!isSupabaseConfigured) return () => {};
+
     const channel = supabase
       .channel(`messages:${weddingId}`)
       .on(

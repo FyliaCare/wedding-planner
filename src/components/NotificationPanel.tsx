@@ -77,6 +77,9 @@ export function NotificationPanel() {
     markRead(notif.id);
     if (notif.type === 'message') {
       navigate('/chat');
+    } else if (notif.type === 'activity') {
+      // Navigate to the most relevant page for the activity
+      navigate('/');
     }
     closePanel();
   }

@@ -36,26 +36,41 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
 
   addEvent: async (eventData) => {
     const event: TimelineEvent = { ...eventData, id: generateId() };
-    await db.timelineEvents.add(event);
-    set((s) => ({
-      events: [...s.events, event].sort((a, b) => a.sort_order - b.sort_order),
-    }));
-    addToSyncQueue({ table: 'timeline_events', operation: 'insert', data: event as unknown as Record<string, unknown> });
+    try {
+      await db.timelineEvents.add(event);
+      set((s) => ({
+        events: [...s.events, event].sort((a, b) => a.sort_order - b.sort_order),
+      }));
+      addToSyncQueue({ table: 'timeline_events', operation: 'insert', data: event as unknown as Record<string, unknown> });
+    } catch (error) {
+      console.error('Failed to add timeline event:', error);
+      throw error;
+    }
   },
 
   updateEvent: async (id, updates) => {
-    await db.timelineEvents.update(id, updates);
-    set((s) => ({
-      events: s.events.map((e) => (e.id === id ? { ...e, ...updates } : e)),
-    }));
-    const event = get().events.find((e) => e.id === id);
-    if (event) addToSyncQueue({ table: 'timeline_events', operation: 'update', data: { ...event, ...updates } as unknown as Record<string, unknown> });
+    try {
+      await db.timelineEvents.update(id, updates);
+      set((s) => ({
+        events: s.events.map((e) => (e.id === id ? { ...e, ...updates } : e)),
+      }));
+      const event = get().events.find((e) => e.id === id);
+      if (event) addToSyncQueue({ table: 'timeline_events', operation: 'update', data: { ...event, ...updates } as unknown as Record<string, unknown> });
+    } catch (error) {
+      console.error('Failed to update timeline event:', error);
+      throw error;
+    }
   },
 
   deleteEvent: async (id) => {
-    await db.timelineEvents.delete(id);
-    set((s) => ({ events: s.events.filter((e) => e.id !== id) }));
-    addToSyncQueue({ table: 'timeline_events', operation: 'delete', data: { id } });
+    try {
+      await db.timelineEvents.delete(id);
+      set((s) => ({ events: s.events.filter((e) => e.id !== id) }));
+      addToSyncQueue({ table: 'timeline_events', operation: 'delete', data: { id } });
+    } catch (error) {
+      console.error('Failed to delete timeline event:', error);
+      throw error;
+    }
   },
 
   reorderEvents: async (events) => {

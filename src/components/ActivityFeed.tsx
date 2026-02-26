@@ -56,7 +56,7 @@ export function ActivityFeed({ weddingId }: { weddingId: string }) {
 
     // Subscribe to realtime activity updates
     const channel = supabase
-      .channel('activities-feed')
+      .channel(`activities-feed-${weddingId}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'activities', filter: `wedding_id=eq.${weddingId}` },

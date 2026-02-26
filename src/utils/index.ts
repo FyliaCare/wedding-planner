@@ -15,19 +15,23 @@ export function formatCurrency(amount: number): string {
 }
 
 export function formatDate(date: string | Date): string {
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return 'Invalid date';
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  }).format(new Date(date));
+  }).format(d);
 }
 
 export function formatTime(date: string | Date): string {
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return 'Invalid time';
   return new Intl.DateTimeFormat('en-US', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
-  }).format(new Date(date));
+  }).format(d);
 }
 
 export function daysUntil(targetDate: string): number {
@@ -47,8 +51,11 @@ export function percentOf(part: number, total: number): number {
 }
 
 export function getInitials(name: string): string {
+  if (!name || !name.trim()) return '??';
   return name
+    .trim()
     .split(' ')
+    .filter(Boolean)
     .map((n) => n[0])
     .join('')
     .toUpperCase()

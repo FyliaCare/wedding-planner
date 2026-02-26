@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/stores/authStore';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { generateId } from '@/utils';
 import type { Wedding } from '@/types';
 import { db } from '@/lib/db';
@@ -14,6 +14,7 @@ export default function SetupPage() {
   const navigate = useNavigate();
   const { user, setWedding } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const [partner1, setPartner1] = useState('Janet');
   const [partner2, setPartner2] = useState('Jojo');
@@ -25,15 +26,16 @@ export default function SetupPage() {
   const handleSubmit = async () => {
     if (!partner1.trim() || !partner2.trim()) return;
     setIsLoading(true);
+    setError('');
 
     const wedding: Wedding = {
       id: generateId(),
       user_id: user?.id || 'local',
-      partner1_name: partner1,
-      partner2_name: partner2,
+      partner1_name: partner1.trim(),
+      partner2_name: partner2.trim(),
       wedding_date: weddingDate || '',
-      venue: venue,
-      location: location,
+      venue: venue.trim(),
+      location: location.trim(),
       theme: '',
       total_budget: Number(budget) || 0,
       cover_image_url: null,
@@ -42,15 +44,15 @@ export default function SetupPage() {
 
     try {
       await db.weddings.add(wedding);
-      if (user?.id) {
-        await supabase.from('weddings').insert(wedding);
+      if (user?.id && isSupabaseConfigured) {
+        const { error: sbError } = await supabase.from('weddings').insert(wedding);
+        if (sbError) console.error('Supabase insert error:', sbError.message);
       }
       setWedding(wedding);
       navigate('/');
-    } catch (error) {
-      console.error('Setup error:', error);
-      setWedding(wedding);
-      navigate('/');
+    } catch (err) {
+      console.error('Setup error:', err);
+      setError('Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -169,6 +171,10 @@ export default function SetupPage() {
               onChange={(e) => setBudget(e.target.value)}
             />
           </div>
+
+          {error && (
+            <p className="text-sm text-destructive text-center bg-destructive/10 rounded-lg p-2">{error}</p>
+          )}
 
           <Button
             className="w-full h-12 rounded-xl text-base font-semibold shadow-lg bg-gradient-to-r from-primary to-pink-500 hover:from-primary/90 hover:to-pink-500/90"

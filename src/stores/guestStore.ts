@@ -51,24 +51,39 @@ export const useGuestStore = create<GuestState>((set, get) => ({
       id: generateId(),
       created_at: new Date().toISOString(),
     };
-    await db.guests.add(guest);
-    set((s) => ({ guests: [...s.guests, guest] }));
-    addToSyncQueue({ table: 'guests', operation: 'insert', data: guest as unknown as Record<string, unknown> });
+    try {
+      await db.guests.add(guest);
+      set((s) => ({ guests: [...s.guests, guest] }));
+      addToSyncQueue({ table: 'guests', operation: 'insert', data: guest as unknown as Record<string, unknown> });
+    } catch (error) {
+      console.error('Failed to add guest:', error);
+      throw error;
+    }
   },
 
   updateGuest: async (id, updates) => {
-    await db.guests.update(id, updates);
-    set((s) => ({
-      guests: s.guests.map((g) => (g.id === id ? { ...g, ...updates } : g)),
-    }));
-    const guest = get().guests.find((g) => g.id === id);
-    if (guest) addToSyncQueue({ table: 'guests', operation: 'update', data: { ...guest, ...updates } as unknown as Record<string, unknown> });
+    try {
+      await db.guests.update(id, updates);
+      set((s) => ({
+        guests: s.guests.map((g) => (g.id === id ? { ...g, ...updates } : g)),
+      }));
+      const guest = get().guests.find((g) => g.id === id);
+      if (guest) addToSyncQueue({ table: 'guests', operation: 'update', data: { ...guest, ...updates } as unknown as Record<string, unknown> });
+    } catch (error) {
+      console.error('Failed to update guest:', error);
+      throw error;
+    }
   },
 
   deleteGuest: async (id) => {
-    await db.guests.delete(id);
-    set((s) => ({ guests: s.guests.filter((g) => g.id !== id) }));
-    addToSyncQueue({ table: 'guests', operation: 'delete', data: { id } });
+    try {
+      await db.guests.delete(id);
+      set((s) => ({ guests: s.guests.filter((g) => g.id !== id) }));
+      addToSyncQueue({ table: 'guests', operation: 'delete', data: { id } });
+    } catch (error) {
+      console.error('Failed to delete guest:', error);
+      throw error;
+    }
   },
 
   setFilter: (filter) =>

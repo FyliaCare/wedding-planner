@@ -109,6 +109,12 @@ export default function DashboardPage() {
               <p className="text-xs text-muted-foreground">It's your wedding day!</p>
             </div>
           )}
+          {countdown !== null && countdown < 0 && (
+            <div className="shrink-0 text-center animate-slide-up stagger-2">
+              <p className="text-2xl font-bold text-primary">Married! 💍</p>
+              <p className="text-xs text-muted-foreground">{Math.abs(countdown)} days ago</p>
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { Activity, ChatMessage } from '@/types';
 
 export interface AppNotification {
@@ -55,8 +55,8 @@ interface NotificationState {
   closePanel: () => void;
   markAllRead: () => void;
   markRead: (id: string) => void;
-  loadRecent: () => Promise<void>;
-  subscribe: () => () => void;
+  loadRecent: (weddingId: string, currentUserId: string) => Promise<void>;
+  subscribe: (weddingId: string, currentUserId: string) => () => void;
 }
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
@@ -90,19 +90,25 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     });
   },
 
-  loadRecent: async () => {
+  loadRecent: async (weddingId: string, currentUserId: string) => {
+    if (!isSupabaseConfigured || !weddingId) return;
+
     try {
-      // Load last 20 activities
+      // Load last 15 activities (excluding current user's own)
       const { data: activities } = await supabase
         .from('activities')
         .select('*')
+        .eq('wedding_id', weddingId)
+        .neq('user_id', currentUserId)
         .order('created_at', { ascending: false })
         .limit(15);
 
-      // Load last 10 messages
+      // Load last 10 messages (excluding current user's own)
       const { data: messages } = await supabase
         .from('messages')
         .select('*')
+        .eq('wedding_id', weddingId)
+        .neq('user_id', currentUserId)
         .order('created_at', { ascending: false })
         .limit(10);
 
@@ -118,23 +124,28 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       // Sort by newest first
       notifs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
-      // Keep top 25
-      const top = notifs.slice(0, 25);
+      // Keep top 25 — mark loaded ones as read (they're historical)
+      const top = notifs.slice(0, 25).map((n) => ({ ...n, read: true }));
 
-      set({ notifications: top, unreadCount: top.length });
+      set({ notifications: top, unreadCount: 0 });
     } catch {
       // Offline — just keep empty
     }
   },
 
-  subscribe: () => {
+  subscribe: (weddingId: string, currentUserId: string) => {
+    if (!isSupabaseConfigured || !weddingId) return () => {};
+
     const channel = supabase
-      .channel('notifications-realtime')
+      .channel(`notifications-${weddingId}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'activities' },
+        { event: 'INSERT', schema: 'public', table: 'activities', filter: `wedding_id=eq.${weddingId}` },
         (payload) => {
-          const notif = activityToNotification(payload.new as Activity);
+          const activity = payload.new as Activity;
+          // Don't notify for own actions
+          if (activity.user_id === currentUserId) return;
+          const notif = activityToNotification(activity);
           set((s) => ({
             notifications: [notif, ...s.notifications].slice(0, 30),
             unreadCount: s.unreadCount + 1,
@@ -143,9 +154,12 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       )
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `wedding_id=eq.${weddingId}` },
         (payload) => {
-          const notif = messageToNotification(payload.new as ChatMessage);
+          const message = payload.new as ChatMessage;
+          // Don't notify for own messages
+          if (message.user_id === currentUserId) return;
+          const notif = messageToNotification(message);
           set((s) => ({
             notifications: [notif, ...s.notifications].slice(0, 30),
             unreadCount: s.unreadCount + 1,

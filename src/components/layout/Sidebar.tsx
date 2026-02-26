@@ -91,11 +91,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               >
                 <span className="text-base">{item.emoji}</span>
                 <span>{item.label}</span>
-                {item.to === '/chat' && (
-                  <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                    !
-                  </span>
-                )}
               </Link>
             );
           })}

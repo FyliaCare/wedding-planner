@@ -11,7 +11,6 @@ export interface User {
   role: 'couple' | 'planner' | 'guest';
   location?: string;
   relationship?: string;
-  pin?: string;
   created_at: string;
 }
 

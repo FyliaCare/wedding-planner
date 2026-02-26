@@ -352,7 +352,7 @@ export default function BudgetPage() {
           </div>
           <DialogFooter className="gap-2">
             {editingCat && (
-              <Button variant="destructive" onClick={async () => { await deleteCategory(editingCat.id); setCatDialogOpen(false); }}>
+              <Button variant="destructive" onClick={async () => { if (!window.confirm('Delete this category and all its items?')) return; await deleteCategory(editingCat.id); setCatDialogOpen(false); }}>
                 Delete
               </Button>
             )}
@@ -400,7 +400,7 @@ export default function BudgetPage() {
           </div>
           <DialogFooter className="gap-2">
             {editingItem && (
-              <Button variant="destructive" onClick={async () => { await deleteItem(editingItem.id); setItemDialogOpen(false); }}>
+              <Button variant="destructive" onClick={async () => { if (!window.confirm('Delete this item?')) return; await deleteItem(editingItem.id); setItemDialogOpen(false); }}>
                 Delete
               </Button>
             )}

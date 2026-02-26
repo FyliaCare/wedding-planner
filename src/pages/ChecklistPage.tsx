@@ -338,6 +338,7 @@ export default function ChecklistPage() {
               <Button
                 variant="destructive"
                 onClick={async () => {
+                  if (!window.confirm('Delete this task?')) return;
                   await deleteTask(editingTask.id);
                   setDialogOpen(false);
                 }}

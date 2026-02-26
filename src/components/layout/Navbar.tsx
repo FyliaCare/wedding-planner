@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Menu, Bell, Wifi, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -5,7 +6,6 @@ import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { NotificationPanel } from '@/components/NotificationPanel';
 import { getInitials } from '@/utils';
-import { isOnline } from '@/lib/sync';
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -14,7 +14,18 @@ interface NavbarProps {
 export function Navbar({ onMenuClick }: NavbarProps) {
   const { user } = useAuthStore();
   const { unreadCount, togglePanel } = useNotificationStore();
-  const online = isOnline();
+  const [online, setOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const goOnline = () => setOnline(true);
+    const goOffline = () => setOnline(false);
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
+  }, []);
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-card/80 backdrop-blur-lg px-4 lg:px-6">

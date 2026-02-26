@@ -1,9 +1,11 @@
 import { create } from 'zustand';
 import type { User, Wedding } from '@/types';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { generateId } from '@/utils';
 
 const CURRENT_KEY = 'wedplanner_current_user';
+const DARK_MODE_KEY = 'wedplanner_dark_mode';
 
 interface MemberRow {
   id: string;
@@ -25,7 +27,6 @@ function memberToUser(m: MemberRow): User {
     role: m.is_admin ? 'couple' : 'guest',
     location: m.location,
     relationship: m.relationship,
-    pin: m.pin,
     created_at: m.created_at,
   };
 }
@@ -58,6 +59,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setWedding: (wedding) => set({ wedding }),
 
   joinParty: async (name, location, relationship, pin) => {
+    if (!name.trim()) throw new Error('Name is required');
+    if (!pin.trim() || pin.length < 4) throw new Error('PIN must be at least 4 digits');
+
     // Check PIN uniqueness in Supabase
     const { data: existing } = await supabase
       .from('members')
@@ -69,8 +73,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     const member: MemberRow = {
       id: generateId(),
-      name,
-      location,
+      name: name.trim(),
+      location: location.trim(),
       relationship,
       pin,
       avatar_url: null,
@@ -87,12 +91,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signInWithPin: async (pin) => {
-    const { data: member } = await supabase
+    if (!pin.trim()) return false;
+
+    const { data: member, error } = await supabase
       .from('members')
       .select('*')
       .eq('pin', pin)
       .maybeSingle();
 
+    if (error) {
+      console.error('Sign-in error:', error.message);
+      return false;
+    }
     if (!member) return false;
 
     const row = member as MemberRow;
@@ -114,36 +124,58 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       email: '',
       name: 'Guest',
       avatar_url: null,
-      role: 'couple',
+      role: 'guest',
       created_at: new Date().toISOString(),
     };
     localStorage.setItem('wedplanner_offline', 'true');
-    set({ user: offlineUser, isAuthenticated: true });
+    set({ user: offlineUser, isAuthenticated: true, isAdmin: false });
   },
 
   initialize: async () => {
+    // Restore dark mode preference
+    const darkPref = localStorage.getItem(DARK_MODE_KEY);
+    if (darkPref === 'true') {
+      document.documentElement.classList.add('dark');
+    } else if (darkPref === 'false') {
+      document.documentElement.classList.remove('dark');
+    }
+
     // Restore saved session from Supabase
     const currentId = localStorage.getItem(CURRENT_KEY);
     if (currentId) {
       try {
-        const { data: member } = await supabase
-          .from('members')
-          .select('*')
-          .eq('id', currentId)
-          .maybeSingle();
+        if (isSupabaseConfigured) {
+          const { data: member } = await supabase
+            .from('members')
+            .select('*')
+            .eq('id', currentId)
+            .maybeSingle();
 
-        if (member) {
-          const row = member as MemberRow;
-          set({ user: memberToUser(row), isAuthenticated: true, isAdmin: !!row.is_admin });
+          if (member) {
+            const row = member as MemberRow;
+            set({ user: memberToUser(row), isAuthenticated: true, isAdmin: !!row.is_admin });
+          }
         }
-      } catch {
-        // Offline — skip
+      } catch (e) {
+        console.warn('Could not restore session from Supabase (offline?):', e);
       }
     }
 
     // Restore offline/guest session
     if (!get().isAuthenticated && localStorage.getItem('wedplanner_offline')) {
       get().skipAuth();
+    }
+
+    // Restore wedding data from Dexie (works offline)
+    if (get().isAuthenticated && !get().wedding) {
+      try {
+        const weddings = await db.weddings.toArray();
+        if (weddings.length > 0) {
+          set({ wedding: weddings[0] });
+        }
+      } catch (e) {
+        console.warn('Could not restore wedding from IndexedDB:', e);
+      }
     }
 
     set({ isLoading: false });

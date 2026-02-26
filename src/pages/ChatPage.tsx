@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Send, MessageCircle } from 'lucide-react';
+import { useEffect, useRef, useState, useMemo } from 'react';
+import { Send, MessageCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuthStore } from '@/stores/authStore';
@@ -42,7 +42,7 @@ function formatTime(dateStr: string) {
 
 export default function ChatPage() {
   const { user, wedding } = useAuthStore();
-  const { messages, loadMessages, sendMessage, subscribeToMessages } = useChatStore();
+  const { messages, isLoading, loadMessages, sendMessage, subscribeToMessages } = useChatStore();
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -78,8 +78,19 @@ export default function ChatPage() {
     inputRef.current?.focus();
   };
 
-  // Group messages by date
-  let lastDate = '';
+  // Precompute which messages should show date separators
+  const dateSeparators = useMemo(() => {
+    const map = new Set<string>();
+    let prevDate = '';
+    for (const msg of messages) {
+      const d = new Date(msg.created_at).toLocaleDateString();
+      if (d !== prevDate) {
+        map.add(msg.id);
+        prevDate = d;
+      }
+    }
+    return map;
+  }, [messages]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] lg:h-[calc(100vh-5rem)]">
@@ -105,7 +116,11 @@ export default function ChatPage() {
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1 bg-hero-gradient">
-        {messages.length === 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground space-y-4 animate-fade-in">
             <div className="relative">
               <span className="text-7xl block">💬</span>
@@ -122,11 +137,7 @@ export default function ChatPage() {
           messages.map((msg, idx) => {
             const isMe = msg.user_id === user?.id;
             const msgDate = new Date(msg.created_at).toLocaleDateString();
-            let showDateSep = false;
-            if (msgDate !== lastDate) {
-              showDateSep = true;
-              lastDate = msgDate;
-            }
+            const showDateSep = dateSeparators.has(msg.id);
 
             return (
               <div key={msg.id} className="animate-slide-up" style={{ animationDelay: `${Math.min(idx * 0.02, 0.3)}s` }}>

@@ -4,16 +4,19 @@ import { Sidebar } from './Sidebar';
 import { Navbar } from './Navbar';
 import { BottomNav } from './BottomNav';
 import { useNotificationStore } from '@/stores/notificationStore';
+import { useAuthStore } from '@/stores/authStore';
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { loadRecent, subscribe } = useNotificationStore();
+  const { wedding, user } = useAuthStore();
 
   useEffect(() => {
-    void loadRecent();
-    const unsub = subscribe();
+    if (!wedding?.id || !user?.id) return;
+    void loadRecent(wedding.id, user.id);
+    const unsub = subscribe(wedding.id, user.id);
     return unsub;
-  }, [loadRecent, subscribe]);
+  }, [wedding?.id, user?.id, loadRecent, subscribe]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-romantic">

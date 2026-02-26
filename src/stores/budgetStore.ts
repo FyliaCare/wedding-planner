@@ -44,54 +44,85 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
 
   addCategory: async (catData) => {
     const cat: BudgetCategory = { ...catData, id: generateId() };
-    await db.budgetCategories.add(cat);
-    set((s) => ({ categories: [...s.categories, cat] }));
-    addToSyncQueue({ table: 'budget_categories', operation: 'insert', data: cat as unknown as Record<string, unknown> });
+    try {
+      await db.budgetCategories.add(cat);
+      set((s) => ({ categories: [...s.categories, cat] }));
+      addToSyncQueue({ table: 'budget_categories', operation: 'insert', data: cat as unknown as Record<string, unknown> });
+    } catch (error) {
+      console.error('Failed to add category:', error);
+      throw error;
+    }
   },
 
   updateCategory: async (id, updates) => {
-    await db.budgetCategories.update(id, updates);
-    set((s) => ({
-      categories: s.categories.map((c) => (c.id === id ? { ...c, ...updates } : c)),
-    }));
-    const cat = get().categories.find((c) => c.id === id);
-    if (cat) addToSyncQueue({ table: 'budget_categories', operation: 'update', data: { ...cat, ...updates } as unknown as Record<string, unknown> });
+    try {
+      await db.budgetCategories.update(id, updates);
+      set((s) => ({
+        categories: s.categories.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+      }));
+      const cat = get().categories.find((c) => c.id === id);
+      if (cat) addToSyncQueue({ table: 'budget_categories', operation: 'update', data: { ...cat, ...updates } as unknown as Record<string, unknown> });
+    } catch (error) {
+      console.error('Failed to update category:', error);
+      throw error;
+    }
   },
 
   deleteCategory: async (id) => {
-    await db.budgetCategories.delete(id);
-    // Also delete items in this category
-    const items = get().items.filter((i) => i.category_id === id);
-    for (const item of items) {
-      await db.budgetItems.delete(item.id);
+    try {
+      // Also delete items in this category
+      const items = get().items.filter((i) => i.category_id === id);
+      for (const item of items) {
+        await db.budgetItems.delete(item.id);
+        addToSyncQueue({ table: 'budget_items', operation: 'delete', data: { id: item.id } });
+      }
+      await db.budgetCategories.delete(id);
+      set((s) => ({
+        categories: s.categories.filter((c) => c.id !== id),
+        items: s.items.filter((i) => i.category_id !== id),
+      }));
+      addToSyncQueue({ table: 'budget_categories', operation: 'delete', data: { id } });
+    } catch (error) {
+      console.error('Failed to delete category:', error);
+      throw error;
     }
-    set((s) => ({
-      categories: s.categories.filter((c) => c.id !== id),
-      items: s.items.filter((i) => i.category_id !== id),
-    }));
-    addToSyncQueue({ table: 'budget_categories', operation: 'delete', data: { id } });
   },
 
   addItem: async (itemData) => {
     const item: BudgetItem = { ...itemData, id: generateId() };
-    await db.budgetItems.add(item);
-    set((s) => ({ items: [...s.items, item] }));
-    addToSyncQueue({ table: 'budget_items', operation: 'insert', data: item as unknown as Record<string, unknown> });
+    try {
+      await db.budgetItems.add(item);
+      set((s) => ({ items: [...s.items, item] }));
+      addToSyncQueue({ table: 'budget_items', operation: 'insert', data: item as unknown as Record<string, unknown> });
+    } catch (error) {
+      console.error('Failed to add budget item:', error);
+      throw error;
+    }
   },
 
   updateItem: async (id, updates) => {
-    await db.budgetItems.update(id, updates);
-    set((s) => ({
-      items: s.items.map((i) => (i.id === id ? { ...i, ...updates } : i)),
-    }));
-    const item = get().items.find((i) => i.id === id);
-    if (item) addToSyncQueue({ table: 'budget_items', operation: 'update', data: { ...item, ...updates } as unknown as Record<string, unknown> });
+    try {
+      await db.budgetItems.update(id, updates);
+      set((s) => ({
+        items: s.items.map((i) => (i.id === id ? { ...i, ...updates } : i)),
+      }));
+      const item = get().items.find((i) => i.id === id);
+      if (item) addToSyncQueue({ table: 'budget_items', operation: 'update', data: { ...item, ...updates } as unknown as Record<string, unknown> });
+    } catch (error) {
+      console.error('Failed to update budget item:', error);
+      throw error;
+    }
   },
 
   deleteItem: async (id) => {
-    await db.budgetItems.delete(id);
-    set((s) => ({ items: s.items.filter((i) => i.id !== id) }));
-    addToSyncQueue({ table: 'budget_items', operation: 'delete', data: { id } });
+    try {
+      await db.budgetItems.delete(id);
+      set((s) => ({ items: s.items.filter((i) => i.id !== id) }));
+      addToSyncQueue({ table: 'budget_items', operation: 'delete', data: { id } });
+    } catch (error) {
+      console.error('Failed to delete budget item:', error);
+      throw error;
+    }
   },
 
   getTotalAllocated: () => get().categories.reduce((sum, c) => sum + c.allocated_amount, 0),

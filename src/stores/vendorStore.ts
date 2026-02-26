@@ -42,24 +42,39 @@ export const useVendorStore = create<VendorState>((set, get) => ({
       id: generateId(),
       created_at: new Date().toISOString(),
     };
-    await db.vendors.add(vendor);
-    set((s) => ({ vendors: [...s.vendors, vendor] }));
-    addToSyncQueue({ table: 'vendors', operation: 'insert', data: vendor as unknown as Record<string, unknown> });
+    try {
+      await db.vendors.add(vendor);
+      set((s) => ({ vendors: [...s.vendors, vendor] }));
+      addToSyncQueue({ table: 'vendors', operation: 'insert', data: vendor as unknown as Record<string, unknown> });
+    } catch (error) {
+      console.error('Failed to add vendor:', error);
+      throw error;
+    }
   },
 
   updateVendor: async (id, updates) => {
-    await db.vendors.update(id, updates);
-    set((s) => ({
-      vendors: s.vendors.map((v) => (v.id === id ? { ...v, ...updates } : v)),
-    }));
-    const vendor = get().vendors.find((v) => v.id === id);
-    if (vendor) addToSyncQueue({ table: 'vendors', operation: 'update', data: { ...vendor, ...updates } as unknown as Record<string, unknown> });
+    try {
+      await db.vendors.update(id, updates);
+      set((s) => ({
+        vendors: s.vendors.map((v) => (v.id === id ? { ...v, ...updates } : v)),
+      }));
+      const vendor = get().vendors.find((v) => v.id === id);
+      if (vendor) addToSyncQueue({ table: 'vendors', operation: 'update', data: { ...vendor, ...updates } as unknown as Record<string, unknown> });
+    } catch (error) {
+      console.error('Failed to update vendor:', error);
+      throw error;
+    }
   },
 
   deleteVendor: async (id) => {
-    await db.vendors.delete(id);
-    set((s) => ({ vendors: s.vendors.filter((v) => v.id !== id) }));
-    addToSyncQueue({ table: 'vendors', operation: 'delete', data: { id } });
+    try {
+      await db.vendors.delete(id);
+      set((s) => ({ vendors: s.vendors.filter((v) => v.id !== id) }));
+      addToSyncQueue({ table: 'vendors', operation: 'delete', data: { id } });
+    } catch (error) {
+      console.error('Failed to delete vendor:', error);
+      throw error;
+    }
   },
 
   setFilter: (filter) => set((s) => ({ filter: { ...s.filter, ...filter } })),

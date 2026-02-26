@@ -44,26 +44,41 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       id: generateId(),
       created_at: new Date().toISOString(),
     };
-    await db.tasks.add(task);
-    set((state) => ({ tasks: [...state.tasks, task] }));
-    addToSyncQueue({ table: 'tasks', operation: 'insert', data: task as unknown as Record<string, unknown> });
+    try {
+      await db.tasks.add(task);
+      set((state) => ({ tasks: [...state.tasks, task] }));
+      addToSyncQueue({ table: 'tasks', operation: 'insert', data: task as unknown as Record<string, unknown> });
+    } catch (error) {
+      console.error('Failed to add task:', error);
+      throw error;
+    }
   },
 
   updateTask: async (id, updates) => {
-    await db.tasks.update(id, updates);
-    set((state) => ({
-      tasks: state.tasks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
-    }));
-    const task = get().tasks.find((t) => t.id === id);
-    if (task) {
-      addToSyncQueue({ table: 'tasks', operation: 'update', data: { ...task, ...updates } as unknown as Record<string, unknown> });
+    try {
+      await db.tasks.update(id, updates);
+      set((state) => ({
+        tasks: state.tasks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+      }));
+      const task = get().tasks.find((t) => t.id === id);
+      if (task) {
+        addToSyncQueue({ table: 'tasks', operation: 'update', data: { ...task, ...updates } as unknown as Record<string, unknown> });
+      }
+    } catch (error) {
+      console.error('Failed to update task:', error);
+      throw error;
     }
   },
 
   deleteTask: async (id) => {
-    await db.tasks.delete(id);
-    set((state) => ({ tasks: state.tasks.filter((t) => t.id !== id) }));
-    addToSyncQueue({ table: 'tasks', operation: 'delete', data: { id } });
+    try {
+      await db.tasks.delete(id);
+      set((state) => ({ tasks: state.tasks.filter((t) => t.id !== id) }));
+      addToSyncQueue({ table: 'tasks', operation: 'delete', data: { id } });
+    } catch (error) {
+      console.error('Failed to delete task:', error);
+      throw error;
+    }
   },
 
   setFilter: (filter) =>
@@ -74,7 +89,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     return tasks.filter((t) => {
       if (filter.status !== 'all' && t.status !== filter.status) return false;
       if (filter.category !== 'all' && t.category !== filter.category) return false;
-      if (filter.search && !t.title.toLowerCase().includes(filter.search.toLowerCase())) return false;
+      if (filter.search) {
+        const q = filter.search.toLowerCase();
+        if (!t.title.toLowerCase().includes(q) && !t.description.toLowerCase().includes(q)) return false;
+      }
       return true;
     });
   },

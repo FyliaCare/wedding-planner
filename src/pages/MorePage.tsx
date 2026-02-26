@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { LogOut, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
@@ -15,13 +15,21 @@ const moreItems = [
 
 export default function MorePage() {
   const { signOut, isAdmin } = useAuthStore();
+  const navigate = useNavigate();
   const [darkMode, setDarkMode] = useState(
     document.documentElement.classList.contains('dark')
   );
 
   const toggleDarkMode = () => {
+    const next = !darkMode;
     document.documentElement.classList.toggle('dark');
-    setDarkMode(!darkMode);
+    localStorage.setItem('wedplanner_dark_mode', String(next));
+    setDarkMode(next);
+  };
+
+  const handleSignOut = () => {
+    signOut();
+    navigate('/auth');
   };
 
   return (
@@ -74,7 +82,7 @@ export default function MorePage() {
         <Button
           variant="outline"
           className="flex-1 h-12 rounded-xl glass border-red-200 text-red-500 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
-          onClick={() => void signOut()}
+          onClick={() => handleSignOut()}
         >
           <LogOut className="mr-2 h-4 w-4" /> Sign Out
         </Button>
