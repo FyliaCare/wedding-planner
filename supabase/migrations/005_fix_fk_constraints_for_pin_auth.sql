@@ -34,28 +34,31 @@ ALTER TABLE IF EXISTS public.tasks
 ALTER TABLE IF EXISTS public.wedding_members
   DROP CONSTRAINT IF EXISTS wedding_members_user_id_fkey;
 
--- ========== 2. DROP OLD auth.uid()-BASED RLS POLICIES ==========
+-- ========== 2. DROP ALL OLD RLS POLICIES ==========
+-- Use a DO block to drop every policy on each table dynamically,
+-- so we never miss a name mismatch.
 
--- From migration 001:
-DROP POLICY IF EXISTS "Users can CRUD own weddings" ON weddings;
-DROP POLICY IF EXISTS "Users can CRUD tasks for own weddings" ON tasks;
-DROP POLICY IF EXISTS "Users can CRUD budget categories for own weddings" ON budget_categories;
-DROP POLICY IF EXISTS "Users can CRUD budget items for own weddings" ON budget_items;
-DROP POLICY IF EXISTS "Users can CRUD guests for own weddings" ON guests;
-DROP POLICY IF EXISTS "Users can CRUD vendors for own weddings" ON vendors;
-DROP POLICY IF EXISTS "Users can CRUD tables for own weddings" ON tables;
-DROP POLICY IF EXISTS "Users can CRUD timeline events for own weddings" ON timeline_events;
-DROP POLICY IF EXISTS "Users can CRUD mood_board for own weddings" ON mood_board_items;
-DROP POLICY IF EXISTS "Users can CRUD notes for own weddings" ON notes;
-DROP POLICY IF EXISTS "Members can view memberships" ON wedding_members;
-DROP POLICY IF EXISTS "Wedding owners can manage members" ON wedding_members;
-
--- From migration 002:
-DROP POLICY IF EXISTS "Wedding members can view messages" ON messages;
-DROP POLICY IF EXISTS "Wedding members can send messages" ON messages;
-DROP POLICY IF EXISTS "Users can delete own messages" ON messages;
-DROP POLICY IF EXISTS "Wedding members can view activities" ON activities;
-DROP POLICY IF EXISTS "Authenticated users can create activities" ON activities;
+DO $$
+DECLARE
+  tbl text;
+  pol record;
+BEGIN
+  FOR tbl IN
+    SELECT unnest(ARRAY[
+      'weddings', 'tasks', 'budget_categories', 'budget_items',
+      'guests', 'vendors', 'tables', 'timeline_events',
+      'mood_board_items', 'notes', 'messages', 'activities',
+      'wedding_members', 'profiles'
+    ])
+  LOOP
+    FOR pol IN
+      SELECT policyname FROM pg_policies WHERE tablename = tbl AND schemaname = 'public'
+    LOOP
+      EXECUTE format('DROP POLICY IF EXISTS %I ON %I', pol.policyname, tbl);
+    END LOOP;
+  END LOOP;
+END;
+$$;
 
 -- ========== 3. ENSURE RLS IS ENABLED + OPEN POLICIES ==========
 -- Since auth is PIN-based and all party members share access,
