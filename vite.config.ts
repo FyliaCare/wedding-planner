@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'icons/*.svg'],
+      includeAssets: ['favicon.ico', 'icons/*.svg', '*.jpeg', '*.jpg', '*.png', '*.webp'],
       manifest: {
         name: 'Wedding Planner',
         short_name: 'WedPlan',
@@ -41,7 +41,8 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,jpg,jpeg,webp,svg,woff2}'],
+        navigateFallbackDenylist: [/^\/couple-/, /\.(?:jpg|jpeg|png|webp|svg|ico)$/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
