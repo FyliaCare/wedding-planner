@@ -33,7 +33,7 @@ export default function SetupPage() {
       user_id: user?.id || 'local',
       partner1_name: partner1.trim(),
       partner2_name: partner2.trim(),
-      wedding_date: weddingDate || '',
+      wedding_date: weddingDate || null,
       venue: venue.trim(),
       location: location.trim(),
       theme: '',

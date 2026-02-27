@@ -65,7 +65,13 @@ async function processSyncQueue(): Promise<void> {
 
       if (error) {
         console.error(`Sync error (${operation} on ${table}):`, error.message);
-        // Keep entry for retry — stop processing further
+        // If it's a 400 Bad Request (invalid data), remove the entry — it will never succeed
+        if (error.message.includes('invalid input syntax') || error.message.includes('violates')) {
+          console.warn(`Removing permanently failed sync entry: ${operation} on ${table}`);
+          await db.syncQueue.delete(entry.id);
+          continue;
+        }
+        // Other errors (network, auth) — keep entry for retry but stop processing
         syncStatus = 'error';
         return;
       }

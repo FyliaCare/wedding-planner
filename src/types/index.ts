@@ -20,7 +20,7 @@ export interface Wedding {
   user_id: string;
   partner1_name: string;
   partner2_name: string;
-  wedding_date: string;
+  wedding_date: string | null;
   venue: string;
   location: string;
   theme: string;

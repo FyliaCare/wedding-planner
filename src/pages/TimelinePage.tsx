@@ -57,7 +57,7 @@ export default function TimelinePage() {
     }
     const data = {
       wedding_id: wedding.id,
-      title, start_time: startTime, end_time: endTime,
+      title, start_time: startTime || '00:00', end_time: endTime || '23:59',
       location, responsible_person: responsible, notes,
       sort_order: editing?.sort_order ?? events.length,
     };
